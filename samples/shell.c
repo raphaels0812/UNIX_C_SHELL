@@ -2,7 +2,7 @@
 #include <unistd.h>
 #include <errno.h>
 #include <sys/types.h>
-//#include <sys/wait.h>
+#include <sys/wait.h>
 
 int main(int argc, char **argv){
   pid_t pid;
