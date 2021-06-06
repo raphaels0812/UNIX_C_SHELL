@@ -18,7 +18,7 @@ int main(int argc, char **argv){
     cmd = &argv[1];           //ponteiro aponta para argv[1], eliminando argv[0] (chamada do shell)
     execvp(cmd[0], cmd);      //subsitui a imagem do processo por outra, passada como primeiro argumento 
   } 
-  else if(pid >= 0){        //processo pai: aguarda o processo filho
+  else if(pid > 0){        //processo pai: aguarda o processo filho
     int status;
     waitpid(-1, &status, 0);  //aguarda o PID do filho retornar status concluído
   } 
