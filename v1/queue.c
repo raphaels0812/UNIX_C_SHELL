@@ -35,14 +35,26 @@ void insertElem(elem *queue, char *info){
     }
 }
 
-elem *removeElem(elem *queue){
+char *removeElem(elem *queue){
+    char *info;
     if(isEmptyQueue(queue) == 1){
         return NULL;
     }
     else{
         elem *head = queue;
-        elem *aux = queue->next;
+        elem *aux = head->next;
         head->next = aux->next;
-        return aux;
+        info = aux->info;
+        return info;
+    }
+}
+
+void printQueue(elem *queue){
+    int k =0;
+    elem *aux = queue;
+    while(aux->next != NULL){
+        aux = aux->next;
+        printf("queue[%d] = %s\n", k, aux->info);
+        k++;
     }
 }

@@ -1,5 +1,0 @@
-V3
-
-Parser precisa ser ajustado para que quando "" for lido, não separe o conteudo interno em tokens diferentes;
- 
-Implementar corretamente V1 ou V2 e passar para V3;

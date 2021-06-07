@@ -36,14 +36,16 @@ void insertElem(elem *queue, char *info){
 }
 
 char *removeElem(elem *queue){
+    char *info;
     if(isEmptyQueue(queue) == 1){
         return NULL;
     }
     else{
         elem *head = queue;
         elem *aux = head->next;
-        head->next = aux;
-        return aux->info;
+        head->next = aux->next;
+        info = aux->info;
+        return info;
     }
 }
 
