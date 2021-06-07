@@ -8,6 +8,7 @@
 #include <sys/wait.h>
 #include "commands.c"
 #include "stack.c"
+#include "queue.c"
 
 void clearBuffer(char **buffer, int buffSize);
 void bufferCheckMallocOrRealloc(char **buffer);
@@ -108,20 +109,21 @@ int main(int argc, char **argv){
             }
 
             /*comando simples executou, mas ainda existem outros comandos na matriz de argumentos*/
-            else if(status == 0){
-                /*armazena o status na pilha*/
-                push(stack, status);
-                stackSize++;
-                /*libera a linha de comando e cria uma nova linha*/
-                free(cmd);        
-                commandLine *cmd;
-                cmd = (commandLine *)malloc(sizeof(commandLine*));
-                cmdCheckMallocOrRealloc(cmd);
-                initCommandLine(cmd);
-                /*limpa o buffer e reincia o index*/        
-                clearBuffer(buffer, maxBuffSize);
-                currBufferIndex = 1;
-            }
+            /*pensar em como determinar se existem mais operadores na linha*/
+            // else if(status == 0){
+            //     /*armazena o status na pilha*/
+            //     push(stack, status);
+            //     stackSize++;
+            //     /*libera a linha de comando e cria uma nova linha*/
+            //     free(cmd);        
+            //     commandLine *cmd;
+            //     cmd = (commandLine *)malloc(sizeof(commandLine*));
+            //     cmdCheckMallocOrRealloc(cmd);
+            //     initCommandLine(cmd);
+            //     /*limpa o buffer e reincia o index*/        
+            //     clearBuffer(buffer, maxBuffSize);
+            //     currBufferIndex = 1;
+            // }
 
             /*comando simples executou com sucesso, entao encerra*/
             else{
@@ -148,20 +150,21 @@ int main(int argc, char **argv){
             }
 
             /*comando simples falhou mas ainda existem outros comandos*/
-            else if(status != 0 && i < argc-1){
-                /*armazeno o status na pilha*/
-                push(stack, status);
-                stackSize++;
-                /*libera a linha de comando e cria uma nova linha*/
-                free(cmd);        
-                commandLine *cmd;
-                cmd = (commandLine *)malloc(sizeof(commandLine*));
-                cmdCheckMallocOrRealloc(cmd);
-                initCommandLine(cmd);
-                /*limpa o buffer e reincia o index*/        
-                clearBuffer(buffer, maxBuffSize);
-                currBufferIndex = 1;
-            }
+            /*pensar em como determinar se existem mais operadores na linha*/
+            // else if(status != 0){
+            //     /*armazeno o status na pilha*/
+            //     push(stack, status);
+            //     stackSize++;
+            //     /*libera a linha de comando e cria uma nova linha*/
+            //     free(cmd);        
+            //     commandLine *cmd;
+            //     cmd = (commandLine *)malloc(sizeof(commandLine*));
+            //     cmdCheckMallocOrRealloc(cmd);
+            //     initCommandLine(cmd);
+            //     /*limpa o buffer e reincia o index*/        
+            //     clearBuffer(buffer, maxBuffSize);
+            //     currBufferIndex = 1;
+            // }
 
             /*comando simples falhou, entao encerra*/
             else{

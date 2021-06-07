@@ -1,0 +1,6 @@
+V2
+
+Falta implementar corretamente a interpretação da fila de operadores.
+Os comandos estão sendo executados na ordem inversa 
+ex: ls -la "||" echo "teste"
+out:"teste" //deveria executar primeiro ls -la

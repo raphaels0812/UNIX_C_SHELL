@@ -1,0 +1,48 @@
+#include <stdlib.h>
+#include <stdio.h>
+
+typedef struct Elem{
+    char *info;
+    struct Elem *next;
+}elem;
+
+elem *initQueue(){
+    elem *queue = (elem *)malloc(sizeof(elem));
+    queue->info = NULL;
+    queue->next = NULL;
+}
+
+int isEmptyQueue(elem *queue){
+    if(queue->next == NULL)
+        return 1;
+    else
+        return 0;
+}
+
+void insertElem(elem *queue, char *info){
+    elem *new = (elem *)malloc(sizeof(elem));
+    new->info = info;
+    new->next = NULL;
+    if(isEmptyQueue(queue) == 1){
+        queue->next = new;
+    }
+    else{
+        elem *aux = queue;
+        while(aux->next != NULL){
+            aux = aux->next;
+        }
+        aux->next = new;
+    }
+}
+
+elem *removeElem(elem *queue){
+    if(isEmptyQueue(queue) == 1){
+        return NULL;
+    }
+    else{
+        elem *head = queue;
+        elem *aux = queue->next;
+        head->next = aux->next;
+        return aux;
+    }
+}
