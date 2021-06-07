@@ -7,97 +7,185 @@
 #include <sys/types.h>
 #include <sys/wait.h>
 #include "commands.c"
-//#include "parser.c"
+#include "stack.c"
 
 void clearBuffer(char **buffer, int buffSize);
-void checkMallocOrRealloc(char **buffer);
-void executeCommand(commandLine *_command);
+void bufferCheckMallocOrRealloc(char **buffer);
+void cmdCheckMallocOrRealloc(commandLine *cmd);
+int executeCommand(commandLine *_command);
 
 int main(int argc, char **argv){
+    /*built-in para saída do programa*/
     if(strcmp(argv[0], "exit") == 0){
         return 0;
     } 
 
+    /*uso incorreto ("ls" eh uma excecao)*/
     if(argc == 1 && strcmp(argv[0], "ls") != 0){             
         printf("Correct use: %s <command> <arg1> <arg2> ... <argn>\n", argv[0]);
         return 0;
     }
 
+    /*buffer para armazenar cada comando simples e seus argumentos*/
     int maxBuffSize = 10;
     char **buffer = (char **)malloc(maxBuffSize*sizeof(char**));
-    checkMallocOrRealloc(buffer);
+    bufferCheckMallocOrRealloc(buffer);
+    int currBufferIndex = 1;
 
-    int currBuffSize = 1;
-    int j = 0;
-
+    /*struct para armazenas linha de comandos*/
     commandLine *cmd;
     cmd = (commandLine *)malloc(sizeof(commandLine*));
+    cmdCheckMallocOrRealloc(cmd);
     initCommandLine(cmd);
-            
+    
+    /*pilha para armazenar o resultado dos comandos com operadores AND e OR*/
+    node *stack = initStack();
+    int stackSize = 0;           
+    
+    /*itera sobre os itens da matriz de argumentos (argv)*/
     for(int i = 1; i < argc; i++){
+        
+        //printf("argv[%d] = %s\n", i, argv[i]);
 
-        if(strcmp(argv[i],"|")!=0 && i!=argc-1 && strcmp(argv[i],";")!=0 && strcmp(argv[i],"||")!=0 && strcmp(argv[i], "&&")!=0){        
-            if(currBuffSize == maxBuffSize){
-                buffer = realloc(buffer, currBuffSize + maxBuffSize);
-                checkMallocOrRealloc(buffer);
-                maxBuffSize = currBuffSize + maxBuffSize;
-            }
-
-            buffer[j] = argv[i];
-            currBuffSize++;
-            j++;
+        if(strcmp(argv[i],"|") != 0 
+            && i != argc-1 
+            && strcmp(argv[i],";") != 0 
+            && strcmp(argv[i],"||") != 0 
+            && strcmp(argv[i], "&&") != 0){                        
+                if(currBufferIndex == maxBuffSize){
+                    buffer = realloc(buffer, currBufferIndex + maxBuffSize);
+                    bufferCheckMallocOrRealloc(buffer);
+                    maxBuffSize = currBufferIndex + maxBuffSize;
+                }
+                /*insiro argv[i] no buffer*/
+                buffer[currBufferIndex-1] = argv[i];
+                currBufferIndex++;
         }
 
-        else if(strcmp(argv[i], "|") == 0){    //encontrou pipe                                                  
-            // for(int k=0; k<currBuffSize-1; k++){
-            //     printf("buffer[%d] = %s\n", k, buffer[k]);
-            // }
-            insertSimpleCommand(cmd, currBuffSize-1, buffer);
+        /*PIPE case*/
+        else if(strcmp(argv[i], "|") == 0){                                                     
+            /*insere os argumentos do buffer em um comando simples*/
+            insertSimpleCommand(cmd, currBufferIndex-1, buffer);
+            /*limpa o buffer e reinicia o index para ler os proximos comandos*/
             clearBuffer(buffer, maxBuffSize);
-            currBuffSize = 1;
-            j = 0;
+            currBufferIndex = 1;
         }      
 
-        else if(strcmp(argv[i], ";") == 0){     //encontrou ";" - comandos independentes
-            insertSimpleCommand(cmd, currBuffSize-1, buffer);
+        /*independent commands case*/
+        else if(strcmp(argv[i], ";") == 0){     
+            /*insire os argumentos do buffer em um comando simples e executa a linha de comando atual*/
+            insertSimpleCommand(cmd, currBufferIndex-1, buffer);
             executeCommand(cmd);
+            /*libera a linha de comando atual*/
             free(cmd);
-                    
+            /*cria uma nova linha de comando*/        
             commandLine *cmd;
             cmd = (commandLine *)malloc(sizeof(commandLine*));
+            cmdCheckMallocOrRealloc(cmd);
             initCommandLine(cmd);
-                    
+            /*limpa o buffer e reinicia o index para ler os proximos comandos*/       
             clearBuffer(buffer, maxBuffSize);
-            currBuffSize = 1;
-            j = 0;
+            currBufferIndex = 1;
         }
 
-        else if(strcmp(argv[i], "||") == 0){        //encontrou "||" = OR
-
-        }   
-
-        else if(strcmp(argv[i], "&&") == 0){        //encontrou "&&" = AND
-
-        }
-
-        else if(i == argc - 1){  //fim da linha
-            if(currBuffSize == maxBuffSize){
-                buffer = realloc(buffer, currBuffSize + maxBuffSize);
-                checkMallocOrRealloc(buffer);
-                maxBuffSize = currBuffSize + maxBuffSize;
+        /*OR case*/
+        else if(strcmp(argv[i], "||") == 0){      
+            /*insere os argumentos do buffer em um comando simples e executa a linha de comando*/
+            insertSimpleCommand(cmd, currBufferIndex-1, buffer);
+            int status = executeCommand(cmd);
+            
+            /*comando simples falhou, permite a execucao do proximo comando*/
+            if(status != 0){        
+                /*libera a linha de comando e cria uma nova linha*/
+                free(cmd);        
+                commandLine *cmd;
+                cmd = (commandLine *)malloc(sizeof(commandLine*));
+                cmdCheckMallocOrRealloc(cmd);
+                initCommandLine(cmd);
+                /*limpa o buffer e reincia o index*/     
+                clearBuffer(buffer, maxBuffSize);
+                currBufferIndex = 1;
             }
 
-            buffer[j] = argv[i];
-            currBuffSize++;
-            // for(int k=0; k<currBuffSize-1; k++){
-            //     printf("buffer[%d] = %s\n", k, buffer[k]);
-            // }
-            insertSimpleCommand(cmd, currBuffSize-1, buffer);
+            /*comando simples executou, mas ainda existem outros comandos na matriz de argumentos*/
+            else if(status == 0){
+                /*armazena o status na pilha*/
+                push(stack, status);
+                stackSize++;
+                /*libera a linha de comando e cria uma nova linha*/
+                free(cmd);        
+                commandLine *cmd;
+                cmd = (commandLine *)malloc(sizeof(commandLine*));
+                cmdCheckMallocOrRealloc(cmd);
+                initCommandLine(cmd);
+                /*limpa o buffer e reincia o index*/        
+                clearBuffer(buffer, maxBuffSize);
+                currBufferIndex = 1;
+            }
+
+            /*comando simples executou com sucesso, entao encerra*/
+            else{
+                exit(EXIT_SUCCESS);
+            }
+        }   
+
+        /*AND case*/
+        else if(strcmp(argv[i], "&&") == 0){      
+            /*insere os argumentos do buffer em um comando simples e executa a linha de comando*/
+            insertSimpleCommand(cmd, currBufferIndex-1, buffer);
+            int status = executeCommand(cmd);
+
+            /*comando simples executou com sucesso, permite a execucao do proximo comando*/
+            if(status == 0){        
+                free(cmd);        
+                commandLine *cmd;
+                cmd = (commandLine *)malloc(sizeof(commandLine*));
+                cmdCheckMallocOrRealloc(cmd);
+                initCommandLine(cmd);
+                /*limpa o buffer e reincia o index*/        
+                clearBuffer(buffer, maxBuffSize);
+                currBufferIndex = 1;
+            }
+
+            /*comando simples falhou mas ainda existem outros comandos*/
+            else if(status != 0 && i < argc-1){
+                /*armazeno o status na pilha*/
+                push(stack, status);
+                stackSize++;
+                /*libera a linha de comando e cria uma nova linha*/
+                free(cmd);        
+                commandLine *cmd;
+                cmd = (commandLine *)malloc(sizeof(commandLine*));
+                cmdCheckMallocOrRealloc(cmd);
+                initCommandLine(cmd);
+                /*limpa o buffer e reincia o index*/        
+                clearBuffer(buffer, maxBuffSize);
+                currBufferIndex = 1;
+            }
+
+            /*comando simples falhou, entao encerra*/
+            else{
+                exit(EXIT_FAILURE);
+            }
+        }
+
+        /*end of command line*/
+        else if(i == argc - 1){ 
+            if(currBufferIndex == maxBuffSize){
+                buffer = realloc(buffer, currBufferIndex + maxBuffSize);
+                bufferCheckMallocOrRealloc(buffer);
+                maxBuffSize = currBufferIndex + maxBuffSize;
+            }
+            /*insere os argumentos do buffer na linha de comando*/
+            buffer[currBufferIndex-1] = argv[i];
+            currBufferIndex++;
+            insertSimpleCommand(cmd, currBufferIndex-1, buffer);
         }   
     }
     executeCommand(cmd);
     free(buffer);
     free(cmd);
+    return 0;
 }
 
 void clearBuffer(char **buffer, int buffSize){
@@ -107,17 +195,23 @@ void clearBuffer(char **buffer, int buffSize){
     }
 }
 
-void checkMallocOrRealloc(char **buffer){
+void bufferCheckMallocOrRealloc(char **buffer){
     if(buffer == NULL){
         printf("allocation error\n");
-        free(buffer);
         exit(EXIT_FAILURE);
     }    
 }
 
-void executeCommand(commandLine *_command){
-    //printf("\nExecuting commands ...\n");
-    //printf("Number of commands: %d\n", _command->_numberOfSimpleCommands);
+void cmdCheckMallocOrRealloc(commandLine *cmd){
+    if(cmd == NULL){
+        printf("allocation error\n");
+        exit(EXIT_FAILURE);
+    }    
+}
+
+int executeCommand(commandLine *_command){
+    printf("\nExecuting commands...\n");
+    printf("Number of commands: %d\n", _command->_numberOfSimpleCommands);
     int tmpin = dup(0);
     int tmpout = dup(1);
 
@@ -131,6 +225,7 @@ void executeCommand(commandLine *_command){
     pid_t child;
 
     int fdout;
+    int status;
 
     for(int i=0; i < _command->_numberOfSimpleCommands; i++){
         dup2(fdin, 0);
@@ -158,12 +253,14 @@ void executeCommand(commandLine *_command){
         child=fork();
         
         if(child == 0){
-            //printf("\nCommand: %s\n", _command->_simpleCommands[i]->_args[0]);
+            printf("\nCommand: %s\n", _command->_simpleCommands[i]->_args[0]);
+            for(int j=0; j < _command->_simpleCommands[i]->_numberOfArguments; j++){
+                printf("Argument[%d]: %s\n", j, _command->_simpleCommands[i]->_args[j]);
+            }
             execvp(_command->_simpleCommands[i]->_args[0], _command->_simpleCommands[i]->_args);
         }
 
         else if(child > 0){
-            int status;
             waitpid(child, &status, 0);
         }
 
@@ -182,4 +279,6 @@ void executeCommand(commandLine *_command){
         //     waitpid(child, &status, 0);
         // }
     }
+    printf("\n");
+    return status;
 }
