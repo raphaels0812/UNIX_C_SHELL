@@ -124,7 +124,7 @@ int main(int argc, char **argv){
 
             /*executa comando i AND i+1*/
             else if(strcmp(operator, "&&") == 0){
-                if(execute(cmd, i) == 0 && execute(cmd, i+1)){
+                if(execute(cmd, i) == 0 && execute(cmd, i+1) == 0){
                     lastOperator = operator;
                     i++;
                 }
