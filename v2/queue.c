@@ -1,10 +1,4 @@
-#include <stdlib.h>
-#include <stdio.h>
-
-typedef struct Elem{
-    char *info;
-    struct Elem *next;
-}elem;
+#include "my_shell.h"
 
 elem *initQueue(){
     elem *queue = (elem *)malloc(sizeof(elem));

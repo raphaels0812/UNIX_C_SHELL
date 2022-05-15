@@ -1,35 +1,16 @@
-#include <stdlib.h>
-#include <stdio.h>
-#define DEFAULT_NUM_OF_ARGS 5
-#define DEFAULT_NUM_OF_COMMANDS 5
-
-/*struct of a simple command*/
-typedef struct{
-    int _numberOfAvailableArguments;
-    int _numberOfArguments;
-    char **_args;
-}simpleCommand;
-
-/*struct of a shell command line, containing 1 or more simple commands*/
-typedef struct{
-    int _numberOfAvailableSimpleCommands;
-    int _numberOfSimpleCommands;
-    simpleCommand **_simpleCommands;  
-    char *_outFile;
-    char *_inpuFile;
-    char *_errFile;
-    int _background;
-}commandLine;
+#include "my_shell.h"
 
 /*"constructor" of simple command struct*/
 void initSimpleCommand(simpleCommand *_simpleCommand){
     _simpleCommand->_numberOfAvailableArguments = DEFAULT_NUM_OF_ARGS;
     _simpleCommand->_numberOfArguments = 0;
-    _simpleCommand->_args = (char **)malloc(DEFAULT_NUM_OF_ARGS*sizeof(char**));
+    _simpleCommand->_args = (char **)malloc((DEFAULT_NUM_OF_ARGS + 1) * sizeof(char*));
     if(_simpleCommand->_args == NULL){
         printf("initSimpleCommand: allocation error\n");
         exit(EXIT_FAILURE);
     }
+	for (int i = 0; i < DEFAULT_NUM_OF_ARGS + 1; i++)
+		_simpleCommand->_args[i] = NULL;
 }
 
 /*insert an argument on a simple command struct*/
@@ -41,8 +22,10 @@ void insertArgument(simpleCommand *_simpleCommand, char *argument){
         _simpleCommand->_numberOfAvailableArguments -= 1;
     }
     else{
-        _simpleCommand->_args = (char **)realloc(_simpleCommand->_args, (_simpleCommand->_numberOfArguments + DEFAULT_NUM_OF_ARGS)*sizeof(char**));
-        if(_simpleCommand->_args == NULL){
+        _simpleCommand->_args = (char **)realloc(_simpleCommand->_args, (_simpleCommand->_numberOfArguments + DEFAULT_NUM_OF_ARGS + 1)*sizeof(char*));
+    	for (int i = _simpleCommand->_numberOfArguments; i < _simpleCommand->_numberOfArguments + DEFAULT_NUM_OF_ARGS + 1; i++)
+			_simpleCommand->_args[i] = NULL;
+	    if(_simpleCommand->_args == NULL){
             printf("insertArgument: reallocation error\n");
             exit(EXIT_FAILURE);
         }
@@ -52,7 +35,7 @@ void insertArgument(simpleCommand *_simpleCommand, char *argument){
             _simpleCommand->_numberOfArguments += 1;
             _simpleCommand->_numberOfAvailableArguments -= 1;
         }
-        
+
     }
 }
 
@@ -61,7 +44,7 @@ void initCommandLine(commandLine *_commandLine){
     _commandLine->_numberOfAvailableSimpleCommands = DEFAULT_NUM_OF_COMMANDS;
     _commandLine->_numberOfSimpleCommands = 0;
 
-    _commandLine->_simpleCommands = (simpleCommand **)malloc(DEFAULT_NUM_OF_COMMANDS*sizeof(simpleCommand**));
+    _commandLine->_simpleCommands = (simpleCommand **)malloc(DEFAULT_NUM_OF_COMMANDS*sizeof(simpleCommand*));
     if(_commandLine->_simpleCommands == NULL){
         printf("initCommandLine: allocation error\n");
         exit(EXIT_FAILURE);
@@ -76,15 +59,15 @@ void initCommandLine(commandLine *_commandLine){
 void insertSimpleCommand(commandLine *_commandLine, int _numberOfArgs, char **args){
     if(_commandLine->_numberOfAvailableSimpleCommands > 0){
         simpleCommand *newSimpleCommand;
-        newSimpleCommand = (simpleCommand *)malloc(sizeof(simpleCommand*));
-        
+        newSimpleCommand = (simpleCommand *)malloc(sizeof(simpleCommand));
+
         if(newSimpleCommand == NULL){
             printf("insertSimpleCommand: allocation error\n");
             exit(EXIT_FAILURE);
         }
 
         initSimpleCommand(newSimpleCommand);
-        
+
         for(int i = 0; i < _numberOfArgs; i++){
             insertArgument(newSimpleCommand, args[i]);
         }
@@ -94,8 +77,8 @@ void insertSimpleCommand(commandLine *_commandLine, int _numberOfArgs, char **ar
         _commandLine->_numberOfAvailableSimpleCommands -= 1;
     }
     else{
-        _commandLine->_simpleCommands = (simpleCommand **)realloc(_commandLine->_simpleCommands, (_commandLine->_numberOfSimpleCommands + DEFAULT_NUM_OF_COMMANDS)*sizeof(simpleCommand**));
-        
+        _commandLine->_simpleCommands = (simpleCommand **)realloc(_commandLine->_simpleCommands, (_commandLine->_numberOfSimpleCommands + DEFAULT_NUM_OF_COMMANDS)*sizeof(simpleCommand*));
+
         if(_commandLine->_simpleCommands == NULL){
             printf("insertSimpleCommand: allocation error\n");
             exit(EXIT_FAILURE);
@@ -104,8 +87,8 @@ void insertSimpleCommand(commandLine *_commandLine, int _numberOfArgs, char **ar
         else{
             _commandLine->_numberOfAvailableSimpleCommands = DEFAULT_NUM_OF_COMMANDS;
             simpleCommand *newSimpleCommand;
-            newSimpleCommand = (simpleCommand *)malloc(sizeof(simpleCommand*));
-        
+            newSimpleCommand = (simpleCommand *)malloc(sizeof(simpleCommand));
+
             if(newSimpleCommand == NULL){
                 printf("insertSimpleCommand: allocation error\n");
                 exit(EXIT_FAILURE);
@@ -113,7 +96,7 @@ void insertSimpleCommand(commandLine *_commandLine, int _numberOfArgs, char **ar
 
             initSimpleCommand(newSimpleCommand);
             newSimpleCommand->_numberOfArguments = _numberOfArgs;
-            
+
             for(int i = 0; i < _numberOfArgs; i++){
                 insertArgument(newSimpleCommand, args[i]);
             }
@@ -121,6 +104,6 @@ void insertSimpleCommand(commandLine *_commandLine, int _numberOfArgs, char **ar
             _commandLine->_simpleCommands[_commandLine->_numberOfSimpleCommands] = newSimpleCommand;
             _commandLine->_numberOfSimpleCommands += 1;
             _commandLine->_numberOfAvailableSimpleCommands -= 1;
-        }    
+        }
     }
 }
